@@ -1,99 +1,62 @@
-'use client'
-import { useState } from "react";
-import {motion} from "framer-motion";
+import Link from "next/link";
+import { BarChart3, ShieldCheck } from "lucide-react";
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import { DataTable } from "@/components/data-table";
+import { SectionCards } from "@/components/section-cards";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import {Eye,EyeOff, Facebook, Mail } from "lucide-react"
+import data from "./dashboard/data.json";
 
 export default function Home() {
-  const [email,setemail]=useState('');
-  const [password,setPassword]=useState('');
-  const [showPassword,setShowPassword]=useState(false);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
-      <motion.div initial={{opacity:0,y:-20}}
-      animate={{opacity:1,y:0}}
-      transition={{duration:0.5}}
-      className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold tracking-tighter">Welcome back</h1>
-            <p className="text-muted-foreground">Enter your credentials to access your account</p>
+    <div className="min-h-screen bg-linear-to-b from-primary-50 via-white to-primary-100">
+      <header className="border-b bg-white/80 backdrop-blur-sm">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 lg:px-6">
+          <div className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <BarChart3 className="size-5 text-primary" />
+            CRM Dashboard
           </div>
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input type="email"
-              id="email"
-              placeholder="test@gmail.com"
-              value={email}
-              onChange={(e)=>setemail(e.target.value)}
-              required />
-
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input 
-                id="password"
-                value={password} 
-                onChange={(e)=>setPassword(e.target.value)}
-                required
-                ></Input>
-                <button
-                type="button"
-                onClick={()=>setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">
-                   {showPassword? <EyeOff size={20}/> :<Eye size={20}/>}
-                </button>
-              </div>
-            </div>
-          <div className="flex items-center justify-between ">
-              <div className="flex items-center space-x-2">
-              <Checkbox id="remember"/>
-                <Label htmlFor="remember">Remember me</Label>
-            </div>
-            <a href="#" className="text-sm text-primary-500 hover:text-primary-600">Forgot password?</a>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <Link href="/login">Login</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/signup">Register</Link>
+            </Button>
           </div>
-          <Button type="submit" className="w-full">Sign in
-            </Button>
-
-          </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t"/>
-              </div>
-                 <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="w-full">
-             <Facebook className="mr-2 h-4 w-4" />
-             Facebook
-            </Button>
-             <Button variant="outline" className="w-full">
-             <Mail className="mr-2 h-4 w-4" />
-             Google
-            </Button>
-           </div>
-
-           <div className="text-center text-sm">
-            Don't have an account?{""}
-            <a href="http://localhost:3000/signup" className="text-primary-500 hover:text-primary-600 font-medium">Sign up</a>
-           </div>
         </div>
+      </header>
 
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 lg:px-6 lg:py-8">
+        <section className="rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+                Dashboard preview first. Sign in when ready.
+              </h1>
+              <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
+                This is a public preview so you can explore the dashboard look and feel.
+                Sign in or register to access full CRM features.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm text-muted-foreground">
+              <ShieldCheck className="size-4 text-emerald-600" />
+              Secure access after authentication
+            </div>
+          </div>
+        </section>
 
-        
+        <section>
+          <SectionCards />
+        </section>
 
-      </motion.div>
-  
+        <section className="px-0 lg:px-0">
+          <ChartAreaInteractive />
+        </section>
+
+        <section>
+          <DataTable data={data} />
+        </section>
+      </main>
     </div>
-    
   );
 }

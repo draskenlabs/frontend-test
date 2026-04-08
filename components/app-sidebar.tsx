@@ -1,28 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import {
-  IconCamera,
-  IconChartBar,
-  IconDashboard,
-  IconDatabase,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
-  IconSettings,
-  IconUsers,
-} from "@tabler/icons-react"
+import * as React from "react";
+import { IconListDetails, IconMessageCircle, IconPackage, IconUser } from "@tabler/icons-react";
 
-import { NavDocuments } from "@/components/nav-documents"
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -31,151 +13,114 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import { getProfile } from "@/lib/api/auth";
+import { getInitials, getSessionUserFromToken } from "@/lib/session";
 
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+const mainNavItems = [
+  {
+    title: "Enquiry Form",
+    url: "/enquiry",
+    icon: IconMessageCircle,
   },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "#",
-      icon: IconDashboard,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
-    },
-  ],
-}
+  {
+    title: "Account",
+    url: "/dashboard/account",
+    icon: IconUser,
+  },
+];
+
+const administrationNavItems = [
+  {
+    title: "Enquiries",
+    url: "/dashboard/enquiries",
+    icon: IconListDetails,
+  },
+  {
+    title: "Services",
+    url: "/dashboard/services",
+    icon: IconPackage,
+  },
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = React.useState({
+    name: "User",
+    email: "",
+    avatar: "",
+    initials: "U",
+  });
+  const [role, setRole] = React.useState<string | null>(null);
+
+  const canSeeAdministration = role === "SUPER_ADMIN" || role === "ADMIN";
+
+  React.useEffect(() => {
+    const tokenUser = getSessionUserFromToken();
+    if (tokenUser) {
+      setRole(tokenUser.role || null);
+      const tokenName = [tokenUser.firstName, tokenUser.lastName].filter(Boolean).join(" ").trim();
+      setUser((current) => {
+        const nextName = tokenName || tokenUser.email || current.name;
+        const nextEmail = tokenUser.email || current.email;
+        return {
+          ...current,
+          name: nextName,
+          email: nextEmail,
+          initials: getInitials(nextName, nextEmail),
+        };
+      });
+    }
+
+    const loadProfile = async () => {
+      try {
+        const profile = await getProfile();
+        if (profile) {
+          setRole(profile.role || tokenUser?.role || null);
+          const profileName = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
+          const nextName = profileName || profile.email || "User";
+          const nextEmail = profile.email || "";
+
+          setUser((current) => ({
+            ...current,
+            name: nextName,
+            email: nextEmail,
+            initials: getInitials(nextName, nextEmail),
+          }));
+        }
+      } catch {
+        // Keep token-based fallback when profile call fails.
+      }
+    };
+
+    loadProfile();
+  }, []);
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
-              </a>
+            <SidebarMenuButton className="data-[slot=sidebar-menu-button]:!p-1.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/10 text-primary font-semibold">
+                  D
+                </div>
+                <div className="min-w-0 text-left">
+                  <p className="truncate text-base font-semibold">Draskenlabs</p>
+                  <p className="truncate text-xs text-muted-foreground">draskenlabs@gmail.com</p>
+                </div>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain title="Main" items={mainNavItems} showQuickCreate />
+        {canSeeAdministration ? <NavMain title="Administration" items={administrationNavItems} /> : null}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

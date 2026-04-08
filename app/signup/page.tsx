@@ -1,5 +1,7 @@
 'use client'
+import { registerUser } from "@/lib/api/auth"
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -8,16 +10,46 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function Signup() {
-  const [name, setName] = useState("");
-  const [dob, setDob] = useState("");
-  const [gender, setGender] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e:any) => {
+  e.preventDefault()
+
+  // password check
+  if(password !== confirmPassword){
+    alert("Passwords do not match")
+    return
+  }
+
+  const form = {
+    firstName,
+    lastName,
+    email: email.trim().toLowerCase(),
+    password
+  }
+
+  try {
+    const result = await registerUser(form)
+
+    if(result?.access_token){
+      alert("Account created successfully!")
+      router.push("/login")
+    } else {
+      alert("Registration failed")
+    }
+  } catch (error: any) {
+    alert(error?.message || "Registration failed")
+  }
+}
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -35,17 +67,30 @@ export default function Signup() {
             </p>
           </div>
 
-          <form className="space-y-4">
+          <form onSubmit={handleSubmit}  className="space-y-4">
 
-            {/* Full Name */}
+            {/* First Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="firstName">First Name</Label>
               <Input
-                id="name"
+                id="firstName"
                 type="text"
-                placeholder="Khushi"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Last Name */}
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Last Name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
                 required
               />
             </div>
@@ -142,7 +187,7 @@ export default function Signup() {
           <div className="text-center text-sm">
             Already have an account?{" "}
             <a
-              href="/"
+              href="/login"
               className="text-primary-500 hover:text-primary-600 font-medium"
             >
               Sign in
