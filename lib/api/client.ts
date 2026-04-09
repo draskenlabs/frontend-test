@@ -1,5 +1,7 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://backend-test-oueb.onrender.com";
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  'https://backend-test-oueb.onrender.com'; 
+
 
 const parseJsonSafe = async (response: Response) => {
   try {
