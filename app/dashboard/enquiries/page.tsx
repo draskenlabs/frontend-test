@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Check, Pencil, RefreshCw, Trash2, X } from "lucide-react";
 import { CommonButton, CommonInput, PageHeader, DataTable } from "@/components/common";
 import {
   convertEnquiryToLead,
@@ -22,7 +22,7 @@ type EnquiryRow = {
   description: string;
   service: string;
   serviceId?: string;
-  status?: "OPEN" | "IN_PROGRESS" | "CLOSED";
+  status?: "OPEN" | "NEW" | "IN_PROGRESS" | "CLOSED";
 };
 
 type ServiceOption = {
@@ -43,7 +43,15 @@ type EnquiryApiResponse = {
   description?: string;
   service?: { id?: string; name?: string } | string;
   serviceId?: string;
-  status?: "OPEN" | "IN_PROGRESS" | "CLOSED";
+  status?: "OPEN" | "NEW" | "IN_PROGRESS" | "CLOSED";
+};
+
+type EditDraft = {
+  name: string;
+  phone: string;
+  email: string;
+  serviceId: string;
+  description: string;
 };
 
 const getErrorMessage = (error: unknown, fallback: string) => {
@@ -66,6 +74,9 @@ export default function EnquiryDashboard() {
     serviceId: "",
     description: "",
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editDraftRef = useRef<EditDraft | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const role = useMemo(() => getSessionUserFromToken()?.role, []);
   const canManageCrud = role === "SUPER_ADMIN" || role === "ADMIN";
@@ -153,35 +164,56 @@ export default function EnquiryDashboard() {
     }
   }, [canManageCrud, loadEnquiries, newEnquiry, services]);
 
-  const handleEdit = useCallback(async (row: EnquiryRow) => {
+  const startEdit = useCallback((row: EnquiryRow) => {
     if (!canManageCrud) {
       return;
     }
 
-    const name = window.prompt("Name", row.name);
-    if (!name) {
+    setEditingId(row.id);
+    editDraftRef.current = {
+      name: row.name,
+      phone: row.phone,
+      email: row.email,
+      serviceId: row.serviceId || services[0]?.id || "",
+      description: row.description,
+    };
+  }, [canManageCrud, services]);
+
+  const cancelEdit = useCallback(() => {
+    setEditingId(null);
+    editDraftRef.current = null;
+  }, []);
+
+  const saveEdit = useCallback(async (id: string) => {
+    if (!canManageCrud || !editDraftRef.current) {
       return;
     }
 
-    const phone = window.prompt("Phone", row.phone) ?? row.phone;
-    const email = window.prompt("Email", row.email) ?? row.email;
-    const description = window.prompt("Description", row.description) ?? row.description;
+    const draft = editDraftRef.current;
 
+    if (!draft.name.trim() || !draft.email.trim() || !draft.serviceId) {
+      return;
+    }
+
+    setSavingEdit(true);
     try {
-      const res = await updateEnquiry(row.id, {
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-        description: description.trim(),
-        serviceId: row.serviceId,
+      const res = await updateEnquiry(id, {
+        name: draft.name.trim(),
+        phone: draft.phone.trim(),
+        email: draft.email.trim(),
+        description: draft.description.trim(),
+        serviceId: draft.serviceId,
       });
       if (res?.id) {
+        cancelEdit();
         await loadEnquiries();
       }
     } catch (error: unknown) {
       alert(getErrorMessage(error, "Failed to update enquiry"));
+    } finally {
+      setSavingEdit(false);
     }
-  }, [canManageCrud, loadEnquiries]);
+  }, [cancelEdit, canManageCrud, loadEnquiries]);
 
   const handleDelete = useCallback(async (id: string) => {
     if (!canManageCrud) {
@@ -219,38 +251,171 @@ export default function EnquiryDashboard() {
 
   const columns = useMemo<ColumnDef<EnquiryRow, unknown>[]>(
     () => [
-      { accessorKey: "name", header: "Name" },
-      { accessorKey: "phone", header: "Phone" },
-      { accessorKey: "email", header: "Email" },
-      { accessorKey: "service", header: "Service" },
-      { accessorKey: "description", header: "Description" },
+      {
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ row }) => {
+          const enquiry = row.original;
+          if (editingId === enquiry.id) {
+            return (
+              <CommonInput
+                defaultValue={editDraftRef.current?.name || enquiry.name}
+                onChange={(e) => {
+                  if (editDraftRef.current) {
+                    editDraftRef.current.name = e.target.value;
+                  }
+                }}
+                className="h-8 min-w-36"
+              />
+            );
+          }
+
+          return <span>{enquiry.name}</span>;
+        },
+      },
+      {
+        accessorKey: "phone",
+        header: "Phone",
+        cell: ({ row }) => {
+          const enquiry = row.original;
+          if (editingId === enquiry.id) {
+            return (
+              <CommonInput
+                defaultValue={editDraftRef.current?.phone || enquiry.phone}
+                onChange={(e) => {
+                  if (editDraftRef.current) {
+                    editDraftRef.current.phone = e.target.value;
+                  }
+                }}
+                className="h-8 min-w-32"
+              />
+            );
+          }
+
+          return <span>{enquiry.phone}</span>;
+        },
+      },
+      {
+        accessorKey: "email",
+        header: "Email",
+        cell: ({ row }) => {
+          const enquiry = row.original;
+          if (editingId === enquiry.id) {
+            return (
+              <CommonInput
+                type="email"
+                defaultValue={editDraftRef.current?.email || enquiry.email}
+                onChange={(e) => {
+                  if (editDraftRef.current) {
+                    editDraftRef.current.email = e.target.value;
+                  }
+                }}
+                className="h-8 min-w-44"
+              />
+            );
+          }
+
+          return <span>{enquiry.email}</span>;
+        },
+      },
+      {
+        accessorKey: "service",
+        header: "Service",
+        cell: ({ row }) => {
+          const enquiry = row.original;
+          if (editingId === enquiry.id) {
+            return (
+              <select
+                className="h-8 min-w-40 rounded-md border bg-white px-2 text-sm"
+                defaultValue={editDraftRef.current?.serviceId || enquiry.serviceId || services[0]?.id || ""}
+                onChange={(e) => {
+                  if (editDraftRef.current) {
+                    editDraftRef.current.serviceId = e.target.value;
+                  }
+                }}
+              >
+                {services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+            );
+          }
+
+          return <span>{enquiry.service}</span>;
+        },
+      },
+      {
+        accessorKey: "description",
+        header: "Description",
+        cell: ({ row }) => {
+          const enquiry = row.original;
+          if (editingId === enquiry.id) {
+            return (
+              <CommonInput
+                defaultValue={editDraftRef.current?.description || enquiry.description}
+                onChange={(e) => {
+                  if (editDraftRef.current) {
+                    editDraftRef.current.description = e.target.value;
+                  }
+                }}
+                className="h-8 min-w-44"
+              />
+            );
+          }
+
+          return <span>{enquiry.description}</span>;
+        },
+      },
       {
         accessorKey: "status",
         header: "Status",
-        cell: ({ row }) => <span>{row.original.status || "OPEN"}</span>,
+        cell: ({ row }) => <span>{row.original.status || "NEW"}</span>,
       },
       {
         id: "actions",
         header: "Actions",
         cell: ({ row }) => {
           const enquiry = row.original;
+          const isEditing = editingId === enquiry.id;
 
           return (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
               {canManageCrud && (
                 <>
-                  <CommonButton size="sm" variant="outline" onClick={() => handleEdit(enquiry)}>
-                    <Pencil className="mr-1 h-3.5 w-3.5" />
-                    Edit
-                  </CommonButton>
-                  <CommonButton size="sm" variant="outline" onClick={() => handleDelete(enquiry.id)}>
-                    <Trash2 className="mr-1 h-3.5 w-3.5" />
-                    Delete
-                  </CommonButton>
+                  {isEditing ? (
+                    <>
+                      <CommonButton
+                        size="sm"
+                        onClick={() => saveEdit(enquiry.id)}
+                        loading={savingEdit}
+                        className="h-8 px-2"
+                      >
+                        <Check className="mr-1 h-3.5 w-3.5" />
+                        Save
+                      </CommonButton>
+                      <CommonButton size="sm" variant="outline" onClick={cancelEdit} className="h-8 px-2">
+                        <X className="mr-1 h-3.5 w-3.5" />
+                        Cancel
+                      </CommonButton>
+                    </>
+                  ) : (
+                    <>
+                      <CommonButton size="sm" variant="outline" onClick={() => startEdit(enquiry)} className="h-8 px-2">
+                        <Pencil className="mr-1 h-3.5 w-3.5" />
+                        Edit
+                      </CommonButton>
+                      <CommonButton size="sm" variant="outline" onClick={() => handleDelete(enquiry.id)} className="h-8 px-2">
+                        <Trash2 className="mr-1 h-3.5 w-3.5" />
+                        Delete
+                      </CommonButton>
+                    </>
+                  )}
                 </>
               )}
-              {canConvertLead && (
-                <CommonButton size="sm" onClick={() => handleConvert(enquiry.id)}>
+              {canConvertLead && !isEditing && (
+                <CommonButton size="sm" onClick={() => handleConvert(enquiry.id)} className="h-8 px-2">
                   <RefreshCw className="mr-1 h-3.5 w-3.5" />
                   Convert to Lead
                 </CommonButton>
@@ -260,7 +425,18 @@ export default function EnquiryDashboard() {
         },
       },
     ],
-    [canConvertLead, canManageCrud, handleConvert, handleDelete, handleEdit]
+    [
+      canConvertLead,
+      canManageCrud,
+      cancelEdit,
+      editingId,
+      handleConvert,
+      handleDelete,
+      saveEdit,
+      savingEdit,
+      services,
+      startEdit,
+    ]
   );
 
   return (

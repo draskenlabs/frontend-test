@@ -17,12 +17,20 @@ import {
 import { getProfile } from "@/lib/api/auth";
 import { getInitials, getSessionUserFromToken } from "@/lib/session";
 
-const navMain = [
+const mainNavItems = [
   {
     title: "Enquiry Form",
     url: "/enquiry",
     icon: IconMessageCircle,
   },
+  {
+    title: "Account",
+    url: "/dashboard/account",
+    icon: IconUser,
+  },
+];
+
+const administrationNavItems = [
   {
     title: "Enquiries",
     url: "/dashboard/enquiries",
@@ -33,11 +41,6 @@ const navMain = [
     url: "/dashboard/services",
     icon: IconPackage,
   },
-  {
-    title: "Account",
-    url: "/dashboard/account",
-    icon: IconUser,
-  },
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -47,10 +50,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     avatar: "",
     initials: "U",
   });
+  const [role, setRole] = React.useState<string | null>(null);
+
+  const canSeeAdministration = role === "SUPER_ADMIN" || role === "ADMIN";
 
   React.useEffect(() => {
     const tokenUser = getSessionUserFromToken();
     if (tokenUser) {
+      setRole(tokenUser.role || null);
       const tokenName = [tokenUser.firstName, tokenUser.lastName].filter(Boolean).join(" ").trim();
       setUser((current) => {
         const nextName = tokenName || tokenUser.email || current.name;
@@ -68,6 +75,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       try {
         const profile = await getProfile();
         if (profile) {
+          setRole(profile.role || tokenUser?.role || null);
           const profileName = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
           const nextName = profileName || profile.email || "User";
           const nextEmail = profile.email || "";
@@ -107,7 +115,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain title="Main" items={mainNavItems} showQuickCreate />
+        {canSeeAdministration ? <NavMain title="Administration" items={administrationNavItems} /> : null}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

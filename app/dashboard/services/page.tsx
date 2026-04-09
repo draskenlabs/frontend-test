@@ -85,6 +85,10 @@ export default function ServicesPage() {
 
   const handleCreateService = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageServices) {
+      return;
+    }
+
     if (!newServiceName.trim() || !selectedCategoryId) {
       return;
     }
@@ -108,6 +112,10 @@ export default function ServicesPage() {
   };
 
   const handleUpdateService = async (id: string) => {
+    if (!canManageServices) {
+      return;
+    }
+
     if (!editServiceName.trim()) {
       return;
     }
@@ -125,6 +133,10 @@ export default function ServicesPage() {
   };
 
   const handleDeleteService = async (id: string) => {
+    if (!canManageServices) {
+      return;
+    }
+
     if (!confirm("Are you sure you want to delete this service?")) {
       return;
     }
@@ -141,6 +153,10 @@ export default function ServicesPage() {
 
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageCategories) {
+      return;
+    }
+
     if (!newCategoryName.trim()) {
       return;
     }
@@ -160,6 +176,10 @@ export default function ServicesPage() {
   };
 
   const handleUpdateCategory = async (id: string) => {
+    if (!canManageCategories) {
+      return;
+    }
+
     if (!editCategoryName.trim()) {
       return;
     }
@@ -177,6 +197,10 @@ export default function ServicesPage() {
   };
 
   const handleDeleteCategory = async (id: string) => {
+    if (!canManageCategories) {
+      return;
+    }
+
     if (!confirm("Are you sure you want to delete this category?")) {
       return;
     }
@@ -197,7 +221,7 @@ export default function ServicesPage() {
   return (
     <div className="p-6 space-y-8">
       <PageHeader
-        title="Services / Products"
+        title="Services"
         description="Manage services and categories used in enquiries"
       />
 

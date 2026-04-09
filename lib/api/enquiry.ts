@@ -14,7 +14,7 @@ export interface UpdateEnquiryPayload {
   phone?: string;
   description?: string;
   serviceId?: string;
-  status?: 'OPEN' | 'IN_PROGRESS' | 'CLOSED';
+  status?: 'OPEN' | 'NEW' | 'IN_PROGRESS' | 'CLOSED';
 }
 
 export const createEnquiry = async (enquiryData: CreateEnquiryPayload) => {
